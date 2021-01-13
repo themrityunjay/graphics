@@ -418,6 +418,63 @@ def ray(point_2d, focal, principal_point, name=None):
         tensor=point_2d, paddings=padding, mode="CONSTANT", constant_values=1.0)
 
 
+def random_rays(focal, principal_point, height, width, n_rays,
+                margin=0, name=None):
+  """Sample rays at random pixel location from a perspective camera.
+
+  Args:
+    focal: A tensor of shape `[A1, ..., An, 2]` where the last dimension
+      contains the fx and fy focal length values.
+    principal_point: A tensor of shape `[A1, ..., An, 2]` where the last
+      dimension contains the cx and cy principal point values.
+    height: The height of the image plane in pixels
+    width: The width of the image plane in pixels.
+    n_rays: The number M of rays to sample.
+    margin: The margin around the borders of the image.
+    name: A name for this op that defaults to "perspective_ray".
+  Returns:
+    A tensor of shape `[A1, ..., An, M, 3]`
+  """
+  with tf.compat.v1.name_scope(name, "sample_rays_from_random_pixels",
+                               [focal, principal_point]):
+    focal = tf.convert_to_tensor(value=focal)
+    principal_point = tf.convert_to_tensor(value=principal_point)
+
+    shape.check_static(
+        tensor=focal, tensor_name="focal", has_dim_equals=(-1, 2))
+    shape.check_static(
+        tensor=principal_point, tensor_name="principal_point",
+        has_dim_equals=(-1, 2))
+    shape.compare_batch_dimensions(
+        tensors=(focal, principal_point),
+        tensor_names=("focal", "principal_point"),
+        last_axes=-2,
+        broadcast_compatible=True)
+
+    tensor_shape = tf.shape(focal)
+    # if tf.greater(tensor_shape.shape, 1):
+    batch_dims = tensor_shape[:-1]
+    n_batches = tf.reduce_prod(batch_dims)
+    # else:
+    #   batch_dims = tf.cast([], tf.int32)
+    #   n_batches = 1
+    random_x = tf.random.uniform([n_rays * n_batches],
+                                 minval=margin,
+                                 maxval=width-margin,
+                                 dtype=tf.int32)
+    random_y = tf.random.uniform([n_rays * n_batches],
+                                 minval=margin,
+                                 maxval=height-margin,
+                                 dtype=tf.int32)
+    pixels = tf.cast(tf.transpose(tf.stack([random_x, random_y])), tf.float32)
+    target_shape = tf.concat([batch_dims, [n_rays, 2]], axis=0)
+    pixels = tf.reshape(pixels, target_shape)
+    rays = ray(pixels,
+               tf.expand_dims(focal, -2),
+               tf.expand_dims(principal_point, -2))
+    return rays, pixels
+
+
 def unproject(point_2d, depth, focal, principal_point, name=None):
   r"""Unprojects a 2d point in 3d.
 
