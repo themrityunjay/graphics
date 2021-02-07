@@ -31,7 +31,6 @@ def feature_steered_convolution_layer(
     num_weight_matrices=8,
     num_output_channels=None,
     initializer=tf.compat.v1.truncated_normal_initializer(stddev=0.1),
-    name=None,
     var_name=None):
   # pyformat: disable
   """Wraps the function `feature_steered_convolution` as a TensorFlow layer.
@@ -75,8 +74,6 @@ def feature_steered_convolution_layer(
     num_output_channels: An optional `int` specifying the number of channels in
       the output. If `None` then `num_output_channels = C`.
     initializer: An initializer for the trainable variables.
-    name: A (name_scope) name for this op. Passed through to
-      feature_steered_convolution().
     var_name: A (var_scope) name for the variables. Defaults to
       `graph_convolution_feature_steered_convolution_weights`.
 
@@ -134,8 +131,7 @@ def feature_steered_convolution_layer(
         var_v=var_v,
         var_c=var_c,
         var_w=var_w,
-        var_b=var_b,
-        name=name)
+        var_b=var_b)
 
 
 class FeatureSteeredConvolutionKerasLayer(tf.keras.layers.Layer):
